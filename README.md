@@ -8,7 +8,7 @@ To implement this:
   
   Create a new password vault using the master password generated from the usb's serial number
   
-  Update paths to point to pythonw.exe and location of the new password vault
+  Update paths to point to KeePass.exe and location of the new password vault
   
   Run runner.vbs
   
