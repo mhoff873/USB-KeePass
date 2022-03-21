@@ -1,4 +1,7 @@
-3/21/2022 v1.0
+Unlocks a KeePass database using master password generated from the unique serial number of a USB device.
+
+v1.0 - 3/21/2022 
+
 
 To implement this:
 
