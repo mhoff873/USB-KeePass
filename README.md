@@ -2,7 +2,7 @@
 
 To implement this:
 
-  Find the usb's serial number, hash it with SHA256, and store it's hex value as the hash variable on line 8
+  Find the usb's serial number, hash it with SHA256, and store its hex value as the hash variable on line 8
   
   Add print statement or debug to see the master password value generated based on the usb's serial number
   
