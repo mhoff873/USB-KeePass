@@ -16,7 +16,7 @@ def search():
                     ascii_serial = ""
                     for i in drive.SerialNumber:
                         ascii_serial += str(ord(i))
-                    os.system(r'cmd /C "C:\Program Files (x86)\KeePass Password Safe 2\KeePass.exe" C:\Python39\py\key\Database.kdbx  -pw:' + str(int(m.hexdigest(), 16) ^ int(ascii_serial, base=10)))
+                    os.system(r'cmd /C "C:\Program Files (x86)\KeePass Password Safe 2\KeePass.exe" C:\Python39\py\key\Database.kdbx  -pw:' + str(int(hash, 16) ^ int(ascii_serial, base=10)))
                 else:
                     discovered += [drive.SerialNumber]
 search()
