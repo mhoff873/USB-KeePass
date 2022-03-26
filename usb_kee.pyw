@@ -29,7 +29,7 @@ def search():
             for hash in hashes():
                 if m.hexdigest() == hash:
                     system(r'cmd /C KeePass ' + dir + "\\vaults\\" + hash + '.kdbx -pw:' + str(int(hash, 16) ^ int(ascii(drive.SerialNumber), base=10)))
-                    #return
+                    return
             discovered += [drive.SerialNumber]
 
 # unlocks a database belonging to the serial number passed in
