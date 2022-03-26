@@ -119,4 +119,4 @@ def create(serial):
 def ascii(serial):
     return "".join(str(ord(c)) for c in serial)
 
-scan()
+#scan()
