@@ -56,21 +56,19 @@ def gen():
 # go through the process of supporting a new usb and creating a database associated with it
 def add():
     connections = capture()
-    new_input = input("new vault? y/n")
-    if new_input.upper() == "Y":
-        for drive in connections:
-            m = hashlib.sha256()
-            m.update(bytes(drive.SerialNumber, 'utf-8'))
-            new = False
-            for hash in hashes():
-                if m.hexdigest() == hash:
-                    new = True
-                    break
-            if not new:
-                create(drive.SerialNumber)
-                print("success")
-            else:
-                print("Drive already in use")
+    for drive in connections:
+        m = hashlib.sha256()
+        m.update(bytes(drive.SerialNumber, 'utf-8'))
+        new = False
+        for hash in hashes():
+            if m.hexdigest() == hash:
+                new = True
+                break
+        if not new:
+            create(drive.SerialNumber)
+            print("success")
+        else:
+            print("Drive already in use")
 
 # returns a usb drive list that was connected and then disconnected
 def capture():
@@ -118,5 +116,3 @@ def create(serial):
 
 def ascii(serial):
     return "".join(str(ord(c)) for c in serial)
-
-#scan()
