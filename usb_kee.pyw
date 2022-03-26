@@ -1,62 +1,122 @@
+import pykeepass
 import wmi
 import hashlib
-import os
+from os import system, listdir
+from os.path import isfile, join, splitext
+from time import sleep
+from pathlib import Path
 
+dir = str(Path(__file__).parent.absolute())
+
+# this only works on windows
+clear = lambda: system('cls')
+# returns a list of every file name in the vaults folder with a .kdbx extension
+hashes = lambda: [splitext(f)[0] for f in listdir(dir + "\\vaults") if isfile(join(dir + "\\vaults", f)) and splitext(f)[1] == ".kdbx"]
 c = wmi.WMI()
 
-keypass_path = "C:\Program Files (x86)\KeePass Password Safe 2\KeePass.exe"
-
-vaults = [
-    { 
-        "vault" : "C:\Python39\py\key\Database.kdbx", 
-        "hash" : "c3f1b129eee3fa0d9191f6b5995af82cd30b377e8c8dd79fc725dbf457223f06"
-    },
-    {
-        "vault" : "C:\Python39\py\key\Database2.kdbx", 
-        "hash" : "b52aaeba4b1a97b1b711046b3621f0fee324bf3b2eb0f16f3de056734ece8edf"
-    }
-]
-
+# runs search on loop
 def scan():
     while(True):
         search()
 
+# checks if a connected usb device has a database associated with it
 def search():
     discovered = []
     for drive in c.Win32_DiskDrive():
         if drive.SerialNumber not in discovered:
             m = hashlib.sha256()
             m.update(bytes(drive.SerialNumber, 'utf-8'))
-            for v in vaults:
-                if m.hexdigest() == v["hash"]:
-                    ascii_serial = ""
-                    for i in drive.SerialNumber:
-                        ascii_serial += str(ord(i))
-                    os.system(r'cmd /C "' + keypass_path + '" ' + v["vault"] + '  -pw:' + str(int(v["hash"], 16) ^ int(ascii_serial, base=10)))
-                    return
+            for hash in hashes():
+                if m.hexdigest() == hash:
+                    system(r'cmd /C KeePass ' + dir + "\\vaults\\" + hash + '.kdbx -pw:' + str(int(hash, 16) ^ int(ascii(drive.SerialNumber), base=10)))
+                    #return
             discovered += [drive.SerialNumber]
 
-def crack(serial, idx = 0):
+# unlocks a database belonging to the serial number passed in
+def crack(serial):
     m = hashlib.sha256()
     m.update(bytes(serial, 'utf-8'))
-    if m.hexdigest() == vaults[idx]["hash"]:
-        ascii_serial = ""
-        for i in serial:
-            ascii_serial += str(ord(i))
-        os.system(r'cmd /C "' + keypass_path + '" ' + vaults[idx]["vault"] + '  -pw:' + str(int(vaults[idx]["hash"], 16) ^ int(ascii_serial, base=10)))
+    for hash in hashes():
+        if hash == m.hexdigest():
+            system(r'cmd /C KeePass ' + dir + "\\vaults\\" + hash + '.kdbx -pw:' + str(int(hash, 16) ^ int(ascii(serial), base=10)))
 
+# print generated values
 def gen():
-    for drive in c.Win32_DiskDrive():
+    connections = capture()
+    for drive in connections:
         m = hashlib.sha256()
         m.update(bytes(drive.SerialNumber, 'utf-8'))
 
-        ascii_serial = ""
-        for i in drive.SerialNumber:
-            ascii_serial += str(ord(i))
-        
         print("utf-8 serial: " + drive.SerialNumber)
         print("hash: " + m.hexdigest())
-        print("ascii serial: " + ascii_serial)
-        print("master password: " + str(int(m.hexdigest(), 16) ^ int(ascii_serial, base=10)))
+        print("ascii serial: " + ascii(drive.SerialNumber))
+        print("master password: " + str(int(m.hexdigest(), 16) ^ int(ascii(drive.SerialNumber))))
+
+
+# go through the process of supporting a new usb and creating a database associated with it
+def add():
+    connections = capture()
+    new_input = input("new vault? y/n")
+    if new_input.upper() == "Y":
+        for drive in connections:
+            m = hashlib.sha256()
+            m.update(bytes(drive.SerialNumber, 'utf-8'))
+            new = False
+            for hash in hashes():
+                if m.hexdigest() == hash:
+                    new = True
+                    break
+            if not new:
+                create(drive.SerialNumber)
+                print("success")
+            else:
+                print("Drive already in use")
+
+# returns a usb drive list that was connected and then disconnected
+def capture():
+
+    clear()
+    print("Connect the USB device")
+    connections = detect_connection(c.Win32_DiskDrive())
+    while not len(connections):
+        connections = detect_connection(c.Win32_DiskDrive())
+    
+    clear()
+    print("Disconnect the USB device")
+    disconnections = detect_disconnection(c.Win32_DiskDrive())
+    while not len(disconnections):
+        disconnections = detect_disconnection(c.Win32_DiskDrive())
+    
+    clear()
+    if connections == disconnections:
+        print("Successly detected USB")
+        return connections
+
+# returns a list of usbs that are connected
+def detect_connection(start):
+    sleep(1)
+    now = c.Win32_DiskDrive()
+    changes = list(set(start) ^ set(now))
+    if len(changes) and len(now) > len(start):
+        return changes
+    return []
+
+def detect_disconnection(start):
+    sleep(1)
+    now = c.Win32_DiskDrive()
+    changes = list(set(start) ^ set(now))
+    if len(changes) and len(start) > len(now):
+        return changes
+    return []
+
+# creates a new database
+def create(serial):
+    m = hashlib.sha256()
+    m.update(bytes(serial, 'utf-8'))
+    p = pykeepass.create_database(dir + "\\vaults\\" + m.hexdigest() + ".kdbx", password = str(int(m.hexdigest(), 16) ^ int(ascii(serial), base=10)))
+    p.save()
+
+def ascii(serial):
+    return "".join(str(ord(c)) for c in serial)
 
 scan()
